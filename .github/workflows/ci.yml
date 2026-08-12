@@ -17,6 +17,22 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: cloudshop
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d cloudshop"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --health-start-period 10s
+
     steps:
 
       - name: Checkout repository
@@ -31,12 +47,24 @@ jobs:
 
       - name: Build and test Auth Service
         working-directory: auth-service
+        env:
+          DB_URL: jdbc:postgresql://localhost:5432/cloudshop
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
         run: mvn -B clean test
 
       - name: Build and test Product Service
         working-directory: product-service
+        env:
+          DB_URL: jdbc:postgresql://localhost:5432/cloudshop
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
         run: mvn -B clean test
 
       - name: Build and test Order Service
         working-directory: order-service
+        env:
+          DB_URL: jdbc:postgresql://localhost:5432/cloudshop
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
         run: mvn -B clean test
