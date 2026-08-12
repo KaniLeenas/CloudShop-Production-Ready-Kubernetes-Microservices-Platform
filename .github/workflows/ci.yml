@@ -1,0 +1,42 @@
+name: CloudShop CI
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+jobs:
+
+  build-and-test:
+
+    name: Build and Test CloudShop
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Build and test Auth Service
+        working-directory: auth-service
+        run: mvn -B clean test
+
+      - name: Build and test Product Service
+        working-directory: product-service
+        run: mvn -B clean test
+
+      - name: Build and test Order Service
+        working-directory: order-service
+        run: mvn -B clean test
