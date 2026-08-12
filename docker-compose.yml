@@ -1,0 +1,97 @@
+services:
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: cloudshop
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - cloudshop-network
+    
+    restart: unless-stopped
+
+    healthcheck:
+      test:  ["CMD-SHELL", "pg_isready -U postgres -d cloudshop"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+
+  auth-service:
+    build:
+      context: ./auth-service
+    image: cloudshop/auth-service:1.0
+    container_name: cloudshop-auth
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/cloudshop
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DDL_AUTO: update
+      SHOW_SQL: "false"
+      FORMAT_SQL: "false"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - cloudshop-network
+    
+    restart: unless-stopped
+
+  product-service:
+    build:
+      context: ./product-service
+    image: cloudshop/product-service:latest
+    container_name: cloudshop-product
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/cloudshop
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DDL_AUTO: update
+      SHOW_SQL: "false"
+      FORMAT_SQL: "false"
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - cloudshop-network
+    
+    restart: unless-stopped
+
+  order-service:
+    build:
+      context: ./order-service
+    image: cloudshop/order-service:latest
+    container_name: cloudshop-order
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/cloudshop
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DDL_AUTO: update
+      SHOW_SQL: "false"
+      FORMAT_SQL: "false"
+    ports:
+      - "8082:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - cloudshop-network
+
+    restart: unless-stopped
+
+networks:
+  cloudshop-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
