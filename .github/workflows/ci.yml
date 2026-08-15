@@ -96,7 +96,7 @@ jobs:
             -t cloudshop/order-service:${{ github.sha }} \
             ./order-service
 
-    security-scan:
+  security-scan:
 
     name: Scan Docker Images with Trivy
 
