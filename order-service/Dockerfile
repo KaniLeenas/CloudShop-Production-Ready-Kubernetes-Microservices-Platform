@@ -1,7 +1,7 @@
 # ==============================
 # Stage 1: Build
 # ==============================
-FROM eclipse-temurin:25-jdk AS builder
+FROM eclipse-temurin:25-jdk-ubi10-minimal AS builder
 
 WORKDIR /build
 
@@ -15,7 +15,7 @@ RUN ./mvnw clean package -DskipTests
 # ==============================
 # Stage 2: Runtime
 # ==============================
-FROM eclipse-temurin:25-jre
+FROM eclipse-temurin:25-jre-ubi10-minimal
 
 WORKDIR /app
 
