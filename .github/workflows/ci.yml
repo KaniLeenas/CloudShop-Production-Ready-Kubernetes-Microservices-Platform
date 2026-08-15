@@ -9,8 +9,12 @@ on:
     branches:
       - main
 
+
 jobs:
 
+  # ==========================================
+  # 1. BUILD AND TEST
+  # ==========================================
   build-and-test:
 
     name: Build and Test CloudShop
@@ -20,12 +24,15 @@ jobs:
     services:
       postgres:
         image: postgres:16
+
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: cloudshop
+
         ports:
           - 5432:5432
+
         options: >-
           --health-cmd "pg_isready -U postgres -d cloudshop"
           --health-interval 10s
@@ -45,6 +52,10 @@ jobs:
           java-version: '25'
           cache: maven
 
+      # ------------------------------------------
+      # Auth Service
+      # ------------------------------------------
+
       - name: Build and test Auth Service
         working-directory: auth-service
         env:
@@ -53,6 +64,10 @@ jobs:
           DB_PASSWORD: postgres
         run: mvn -B clean test
 
+      # ------------------------------------------
+      # Product Service
+      # ------------------------------------------
+
       - name: Build and test Product Service
         working-directory: product-service
         env:
@@ -60,6 +75,10 @@ jobs:
           DB_USERNAME: postgres
           DB_PASSWORD: postgres
         run: mvn -B clean test
+
+      # ------------------------------------------
+      # Order Service
+      # ------------------------------------------
 
       - name: Build and test Order Service
         working-directory: order-service
@@ -70,11 +89,20 @@ jobs:
         run: mvn -B clean test
 
 
+  # ==========================================
+  # 2. DOCKER BUILD
+  # ==========================================
   docker-build:
+
     name: Build CloudShop Docker Images
+
+    needs:
+      - build-and-test
+
     runs-on: ubuntu-latest
 
     steps:
+
       - name: Checkout repository
         uses: actions/checkout@v6
 
@@ -96,6 +124,10 @@ jobs:
             -t cloudshop/order-service:${{ github.sha }} \
             ./order-service
 
+
+  # ==========================================
+  # 3. SECURITY SCAN
+  # ==========================================
   security-scan:
 
     name: Scan Docker Images with Trivy
@@ -110,6 +142,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      # ------------------------------------------
+      # Build images again
+      # ------------------------------------------
+      #
+      # GitHub Actions jobs use separate runners.
+      # Therefore images from docker-build are not
+      # automatically available here.
+      #
+
       - name: Build Auth Service image
         run: |
           docker build \
@@ -128,8 +169,16 @@ jobs:
             -t cloudshop/order-service:${{ github.sha }} \
             ./order-service
 
+      # ------------------------------------------
+      # Install Trivy
+      # ------------------------------------------
+
       - name: Install Trivy
         uses: aquasecurity/setup-trivy@v0.2.5
+
+      # ------------------------------------------
+      # Scan Auth Service
+      # ------------------------------------------
 
       - name: Scan Auth Service
         run: |
@@ -138,12 +187,20 @@ jobs:
             --exit-code 1 \
             cloudshop/auth-service:${{ github.sha }}
 
+      # ------------------------------------------
+      # Scan Product Service
+      # ------------------------------------------
+
       - name: Scan Product Service
         run: |
           trivy image \
             --severity HIGH,CRITICAL \
             --exit-code 1 \
             cloudshop/product-service:${{ github.sha }}
+
+      # ------------------------------------------
+      # Scan Order Service
+      # ------------------------------------------
 
       - name: Scan Order Service
         run: |
