@@ -95,3 +95,59 @@ jobs:
           docker build \
             -t cloudshop/order-service:${{ github.sha }} \
             ./order-service
+
+    security-scan:
+
+    name: Scan Docker Images with Trivy
+
+    needs:
+      - docker-build
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Build Auth Service image
+        run: |
+          docker build \
+            -t cloudshop/auth-service:${{ github.sha }} \
+            ./auth-service
+
+      - name: Build Product Service image
+        run: |
+          docker build \
+            -t cloudshop/product-service:${{ github.sha }} \
+            ./product-service
+
+      - name: Build Order Service image
+        run: |
+          docker build \
+            -t cloudshop/order-service:${{ github.sha }} \
+            ./order-service
+
+      - name: Install Trivy
+        uses: aquasecurity/setup-trivy@v0.2.5
+
+      - name: Scan Auth Service
+        run: |
+          trivy image \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            cloudshop/auth-service:${{ github.sha }}
+
+      - name: Scan Product Service
+        run: |
+          trivy image \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            cloudshop/product-service:${{ github.sha }}
+
+      - name: Scan Order Service
+        run: |
+          trivy image \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            cloudshop/order-service:${{ github.sha }}
