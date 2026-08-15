@@ -174,7 +174,7 @@ jobs:
       # ------------------------------------------
 
       - name: Install Trivy
-        uses: aquasecurity/setup-trivy@v0.2.5
+        uses: aquasecurity/setup-trivy@v0.2.4
 
       # ------------------------------------------
       # Scan Auth Service
