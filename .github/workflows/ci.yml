@@ -68,3 +68,30 @@ jobs:
           DB_USERNAME: postgres
           DB_PASSWORD: postgres
         run: mvn -B clean test
+
+
+  docker-build:
+    name: Build CloudShop Docker Images
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Build Auth Service image
+        run: |
+          docker build \
+            -t cloudshop/auth-service:${{ github.sha }} \
+            ./auth-service
+
+      - name: Build Product Service image
+        run: |
+          docker build \
+            -t cloudshop/product-service:${{ github.sha }} \
+            ./product-service
+
+      - name: Build Order Service image
+        run: |
+          docker build \
+            -t cloudshop/order-service:${{ github.sha }} \
+            ./order-service
