@@ -9,21 +9,30 @@ on:
     branches:
       - main
 
+
+# ==========================================
+# GLOBAL PERMISSIONS
+# ==========================================
+
 permissions:
   contents: read
   packages: write
+
 
 jobs:
 
   # ==========================================
   # 1. BUILD AND TEST
   # ==========================================
+
   build-and-test:
 
     name: Build and Test CloudShop
+
     runs-on: ubuntu-latest
 
     services:
+
       postgres:
         image: postgres:16
 
@@ -42,10 +51,20 @@ jobs:
           --health-retries 5
           --health-start-period 10s
 
+
     steps:
+
+      # ------------------------------------------
+      # Checkout Repository
+      # ------------------------------------------
 
       - name: Checkout repository
         uses: actions/checkout@v6
+
+
+      # ------------------------------------------
+      # Setup Java
+      # ------------------------------------------
 
       - name: Set up Java
         uses: actions/setup-java@v5
@@ -53,6 +72,7 @@ jobs:
           distribution: temurin
           java-version: '25'
           cache: maven
+
 
       # ------------------------------------------
       # Auth Service
@@ -66,6 +86,7 @@ jobs:
           DB_PASSWORD: postgres
         run: mvn -B clean test
 
+
       # ------------------------------------------
       # Product Service
       # ------------------------------------------
@@ -77,6 +98,7 @@ jobs:
           DB_USERNAME: postgres
           DB_PASSWORD: postgres
         run: mvn -B clean test
+
 
       # ------------------------------------------
       # Order Service
@@ -91,9 +113,11 @@ jobs:
         run: mvn -B clean test
 
 
+
   # ==========================================
   # 2. DOCKER BUILD
   # ==========================================
+
   docker-build:
 
     name: Build CloudShop Docker Images
@@ -103,10 +127,20 @@ jobs:
 
     runs-on: ubuntu-latest
 
+
     steps:
+
+      # ------------------------------------------
+      # Checkout Repository
+      # ------------------------------------------
 
       - name: Checkout repository
         uses: actions/checkout@v6
+
+
+      # ------------------------------------------
+      # Build Auth Service Image
+      # ------------------------------------------
 
       - name: Build Auth Service image
         run: |
@@ -114,11 +148,21 @@ jobs:
             -t cloudshop/auth-service:${{ github.sha }} \
             ./auth-service
 
+
+      # ------------------------------------------
+      # Build Product Service Image
+      # ------------------------------------------
+
       - name: Build Product Service image
         run: |
           docker build \
             -t cloudshop/product-service:${{ github.sha }} \
             ./product-service
+
+
+      # ------------------------------------------
+      # Build Order Service Image
+      # ------------------------------------------
 
       - name: Build Order Service image
         run: |
@@ -127,9 +171,11 @@ jobs:
             ./order-service
 
 
+
   # ==========================================
   # 3. SECURITY SCAN
   # ==========================================
+
   security-scan:
 
     name: Scan Docker Images with Trivy
@@ -139,19 +185,24 @@ jobs:
 
     runs-on: ubuntu-latest
 
+
     steps:
+
+      # ------------------------------------------
+      # Checkout Repository
+      # ------------------------------------------
 
       - name: Checkout repository
         uses: actions/checkout@v6
 
+
       # ------------------------------------------
-      # Build images again
+      # Build Images Again
+      #
+      # GitHub Actions jobs run on separate runners.
+      # Therefore Docker images created in the
+      # docker-build job are not available here.
       # ------------------------------------------
-      #
-      # Each GitHub Actions job uses a separate runner.
-      # Therefore images from docker-build are not
-      # automatically available here.
-      #
 
       - name: Build Auth Service image
         run: |
@@ -159,17 +210,20 @@ jobs:
             -t cloudshop/auth-service:${{ github.sha }} \
             ./auth-service
 
+
       - name: Build Product Service image
         run: |
           docker build \
             -t cloudshop/product-service:${{ github.sha }} \
             ./product-service
 
+
       - name: Build Order Service image
         run: |
           docker build \
             -t cloudshop/order-service:${{ github.sha }} \
             ./order-service
+
 
       # ------------------------------------------
       # Install Trivy
@@ -179,6 +233,7 @@ jobs:
         uses: aquasecurity/setup-trivy@3fb12ec12f41e471780db15c232d5dd185dcb514
         with:
           version: v0.69.3
+
 
       # ------------------------------------------
       # Scan Auth Service
@@ -191,6 +246,7 @@ jobs:
             --exit-code 1 \
             cloudshop/auth-service:${{ github.sha }}
 
+
       # ------------------------------------------
       # Scan Product Service
       # ------------------------------------------
@@ -202,6 +258,7 @@ jobs:
             --exit-code 1 \
             cloudshop/product-service:${{ github.sha }}
 
+
       # ------------------------------------------
       # Scan Order Service
       # ------------------------------------------
@@ -212,6 +269,7 @@ jobs:
             --severity HIGH,CRITICAL \
             --exit-code 1 \
             cloudshop/order-service:${{ github.sha }}
+
 
 
   # ==========================================
@@ -227,18 +285,28 @@ jobs:
 
     runs-on: ubuntu-latest
 
+
     steps:
+
+      # ------------------------------------------
+      # Checkout Repository
+      # ------------------------------------------
 
       - name: Checkout repository
         uses: actions/checkout@v6
 
+
       # ------------------------------------------
-      # Convert GitHub owner to lowercase
+      # Convert GitHub Owner to Lowercase
+      #
+      # Example:
+      # KaniLeenas -> kanileenas
       # ------------------------------------------
 
       - name: Set lowercase image owner
         run: |
-         echo "IMAGE_OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+          echo "IMAGE_OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
 
       # ------------------------------------------
       # Login to GitHub Container Registry
@@ -246,64 +314,71 @@ jobs:
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
+
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+
       # ------------------------------------------
-      # Build Auth Service
+      # Build Auth Service Image
       # ------------------------------------------
 
       - name: Build Auth Service image
         run: |
           docker build \
-            -t ghcr.io/${{ github.repository_owner }}/cloudshop-auth-service:${{ github.sha }} \
+            -t ghcr.io/${IMAGE_OWNER}/cloudshop-auth-service:${{ github.sha }} \
             ./auth-service
 
+
       # ------------------------------------------
-      # Build Product Service
+      # Build Product Service Image
       # ------------------------------------------
 
       - name: Build Product Service image
         run: |
           docker build \
-            -t ghcr.io/${{ github.repository_owner }}/cloudshop-product-service:${{ github.sha }} \
+            -t ghcr.io/${IMAGE_OWNER}/cloudshop-product-service:${{ github.sha }} \
             ./product-service
 
+
       # ------------------------------------------
-      # Build Order Service
+      # Build Order Service Image
       # ------------------------------------------
 
       - name: Build Order Service image
         run: |
           docker build \
-            -t ghcr.io/${{ github.repository_owner }}/cloudshop-order-service:${{ github.sha }} \
+            -t ghcr.io/${IMAGE_OWNER}/cloudshop-order-service:${{ github.sha }} \
             ./order-service
 
+
       # ------------------------------------------
-      # Push Auth Service
+      # Push Auth Service Image
       # ------------------------------------------
 
       - name: Push Auth Service image
         run: |
           docker push \
-            ghcr.io/${{ github.repository_owner }}/cloudshop-auth-service:${{ github.sha }}
+            ghcr.io/${IMAGE_OWNER}/cloudshop-auth-service:${{ github.sha }}
+
 
       # ------------------------------------------
-      # Push Product Service
+      # Push Product Service Image
       # ------------------------------------------
 
       - name: Push Product Service image
         run: |
           docker push \
-            ghcr.io/${{ github.repository_owner }}/cloudshop-product-service:${{ github.sha }}
+            ghcr.io/${IMAGE_OWNER}/cloudshop-product-service:${{ github.sha }}
+
 
       # ------------------------------------------
-      # Push Order Service
+      # Push Order Service Image
       # ------------------------------------------
 
       - name: Push Order Service image
         run: |
           docker push \
-            ghcr.io/${{ github.repository_owner }}/cloudshop-order-service:${{ github.sha }}
+            ghcr.io/${IMAGE_OWNER}/cloudshop-order-service:${{ github.sha }}
