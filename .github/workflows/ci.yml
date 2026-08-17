@@ -10,6 +10,10 @@ on:
       - main
 
 
+permissions:
+    contents:  read
+    packages:  write
+
 jobs:
 
   # ==========================================
@@ -210,3 +214,62 @@ jobs:
             --severity HIGH,CRITICAL \
             --exit-code 1 \
             cloudshop/order-service:${{ github.sha }}
+
+# --------------------------------------------------
+# Publish Imagers to GHCR
+#---------------------------------------------------
+
+  publish-images:
+
+    name:  Publish CloudShop Images
+
+    needs:
+      - security-scan
+
+    runs-on:  ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+      - uses: actions/checkout@v6
+
+      - name: Login to GitHub Container Registry
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secreats.GITHUB_TOKEN }}
+
+
+      - name: Build Auth Sevice image
+        run: |
+          docker build \
+            -t ghcr.io/${{ Github.repository_owner }}/cloudshop-auth-sevice:${{ github.sha }} \
+            ./auth-service
+
+      - name: Build Product Service image
+        run: |
+          docker build \
+            -t ghcr.io/${{ github.repository_owner }}/cloudshop-product-service:${{ github.sha }} \
+            ./product-service
+
+      - name: Build Order Service image
+        run: |
+          docker build \
+            -t ghcr.io/${{ github.repository_owner }}/cloudshop-order-service:${{ github.sha }} \
+            ./order-service
+
+      - name: Push Auth Service image
+        run: |
+          docker push \
+            ghcr.io/${{ github.repository_owner }}/cloudshop-auth-service:${{ github.sha }}
+
+      - name: Push Product Service image
+        run: |
+          docker push \
+            ghcr.io/${{ github.repository_owner }}/cloudshop-product-service:${{ github.sha }}
+
+      - name: Push Order Service image
+        run: |
+          docker push \
+            ghcr.io/${{ github.repository_owner }}/cloudshop-order-service:${{ github.sha }}
