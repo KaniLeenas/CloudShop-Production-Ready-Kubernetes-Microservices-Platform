@@ -233,6 +233,14 @@ jobs:
         uses: actions/checkout@v6
 
       # ------------------------------------------
+      # Convert GitHub owner to lowercase
+      # ------------------------------------------
+
+      - name: Set lowercase image owner
+        run: |
+         echo "IMAGE_OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
+      # ------------------------------------------
       # Login to GitHub Container Registry
       # ------------------------------------------
 
